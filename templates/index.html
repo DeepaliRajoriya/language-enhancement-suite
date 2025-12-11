@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI Writing Enhancement Suite</title>
+  <style>
+    :root{
+      --primary:#5b4bc4; --primary-light:#ecebff; --bg:#f8f9fa; --border:#ddd; --text:#222;
+    }
+    body{margin:0;font-family:"Segoe UI",sans-serif;background:var(--bg);}
+    /* Header */
+    .header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:#fff;border-bottom:1px solid var(--border)}
+    .menu{cursor:pointer;font-size:20px;margin-right:8px}
+    .brand{color:var(--primary);font-weight:700}
+    /* Sidebar */
+    #sidebar{position:fixed;left:0;top:0;height:100%;width:0;background:#fff;overflow-x:hidden;transition:0.35s;box-shadow:2px 0 10px rgba(0,0,0,0.08);padding-top:60px}
+    #sidebar .inner{padding:18px}
+    .history-card{background:#fbfbff;border-left:4px solid var(--primary);padding:10px;border-radius:8px;margin-bottom:12px}
+    /* Container */
+    .container{max-width:1150px;margin:20px auto;padding:22px;background:#fff;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.04)}
+    /* Mode tabs */
+    .tabs{display:flex;gap:12px;justify-content:center;background:var(--primary-light);padding:8px;border-radius:40px;margin-bottom:12px}
+    .tab{border:none;background:transparent;padding:10px 18px;border-radius:20px;cursor:pointer;font-weight:600;color:#444}
+    .tab.active{background:var(--primary);color:#fff}
+    .desc{text-align:center;color:#555;margin:10px 0 18px}
+    /* Controls (academic) */
+    .control-panel{display:none;padding:12px;border-radius:10px;background:#fafaff;border:1px solid var(--border);margin-bottom:14px}
+    .panel-row{display:flex;gap:10px;flex-wrap:wrap}
+    .pill{padding:8px 14px;border-radius:20px;border:1px solid var(--border);background:#fff;cursor:pointer;font-weight:600}
+    .pill.selected{background:var(--primary-light);border-color:var(--primary);color:var(--primary)}
+    /* Main editor side-by-side */
+    .main{display:flex;gap:20px}
+    .col{flex:1;display:flex;flex-direction:column}
+    label{font-weight:700;margin-bottom:8px;color:#333}
+    textarea{width:100%;min-height:260px;padding:14px;border-radius:10px;border:2px solid var(--border);resize:vertical;font-size:15px}
+    textarea:focus{border-color:var(--primary)}
+    .btn{margin-top:12px;background:var(--primary);color:#fff;padding:12px;border:none;border-radius:10px;cursor:pointer;font-weight:700}
+    /* small responsive */
+    @media (max-width:900px){
+      .main{flex-direction:column}
+      #sidebar{display:none}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <div id="sidebar"><div class="inner"><h3 style="color:var(--primary)">History</h3><div id="historyItems"></div></div></div>
+
+  <!-- Header -->
+  <div class="header">
+    <div style="display:flex;align-items:center">
+      <div class="menu" onclick="toggleSidebar()">☰</div>
+      <div class="brand">AI Writing Enhancement & Creator Suite</div>
+    </div>
+    <div>
+      <!-- show login/signup links (simple) -->
+      <a href="/signup-page" style="margin-right:12px;color:var(--primary);text-decoration:none;font-weight:600">Sign up</a>
+      <a href="/login-page" style="color:var(--primary);text-decoration:none;font-weight:600">Log in</a>
+    </div>
+  </div>
+
+  <!-- Main container -->
+  <div class="container">
+    <div class="tabs" role="tablist" aria-label="modes">
+      <button class="tab active" onclick="switchMode('general', this)">General</button>
+      <button class="tab" onclick="switchMode('academic', this)">Academic</button>
+    </div>
+
+    <p id="modeDesc" class="desc">Essential tools for students: Improve readability, summarize content, and check for grammar errors.</p>
+
+    <!-- Academic-only controls -->
+    <div id="academicControls" class="control-panel">
+      <div class="panel-title" style="font-weight:800;margin-bottom:8px">Select Action</div>
+      <div class="panel-row">
+        <button class="pill selected" onclick="selectAction('check', this)">Grammar & Clarity</button>
+        <button class="pill" onclick="selectAction('summarize', this)">Text Summarization</button>
+      </div>
+
+      <div style="height:12px"></div>
+
+      <div class="panel-title" style="font-weight:800;margin-bottom:8px">Tone</div>
+      <div class="panel-row">
+        <button class="pill selected" onclick="selectTone('neutral', this)">Neutral</button>
+        <button class="pill" onclick="selectTone('academic', this)">Academic</button>
+        <button class="pill" onclick="selectTone('formal', this)">Formal</button>
+        <button class="pill" onclick="selectTone('direct', this)">Direct</button>
+      </div>
+    </div>
+
+    <!-- side-by-side editor -->
+    <div class="main">
+      <div class="col">
+        <label for="inputText">Input Text</label>
+        <textarea id="inputText" placeholder="Paste your essay paragraph, report section, or text here..."></textarea>
+        <button class="btn" onclick="processText()">Enhance</button>
+      </div>
+
+      <div class="col">
+        <label for="outputText">Enhanced Output</label>
+        <textarea id="outputText" readonly placeholder="The improved content will appear here..."></textarea>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // state
+  let currentMode = 'general';
+  let currentAction = 'check';
+  let currentTone = 'neutral';
+
+  // sidebar toggle + load history
+  function toggleSidebar(){
+    const sb = document.getElementById('sidebar');
+    sb.style.width = sb.style.width === '300px' ? '0' : '300px';
+    if(sb.style.width === '300px'){ loadHistory(); }
+  }
+
+  async function loadHistory(){
+    // try to fetch history; if not logged in, request will redirect/401 — handle gracefully
+    try {
+      const res = await fetch('/history');
+      if (!res.ok) {
+        // Not logged in or other error: show message
+        const box = document.getElementById('historyItems');
+        box.innerHTML = '<div style="color:#666">Login to see your saved history.</div>';
+        return;
+      }
+      const data = await res.json();
+      const container = document.getElementById('historyItems');
+      container.innerHTML = '';
+      if (!data || data.length === 0) {
+        container.innerHTML = '<div style="color:#666">No history yet.</div>';
+        return;
+      }
+      data.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'history-card';
+        card.innerHTML = `<strong>${item.task}</strong><br><small>${item.timestamp}</small><br><div style="margin-top:8px"><strong>Input:</strong> ${escapeHtml(item.input)}</div><div style="margin-top:6px"><strong>Output:</strong> ${escapeHtml(item.output)}</div>`;
+        container.appendChild(card);
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  // simple escape to prevent breaking HTML in sidebar
+  function escapeHtml(str){ if(!str) return ''; return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+
+  // Mode switching
+  function switchMode(mode, btn){
+    currentMode = mode;
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+
+    const controls = document.getElementById('academicControls');
+    const desc = document.getElementById('modeDesc');
+
+    if(mode === 'academic'){
+      controls.style.display = 'block';
+      desc.innerText = 'Academic mode: grammar, summarization and tone tools.';
+    } else {
+      controls.style.display = 'none';
+      desc.innerText = 'General mode: quick checks and corrections.';
+      // reset to defaults for general mode
+      currentAction = 'check';
+      currentTone = 'neutral';
+      // update pills UI
+      document.querySelectorAll('.pill').forEach(p => p.classList.remove('selected'));
+      // set default pills
+      const firstPills = document.querySelectorAll('.panel-row .pill');
+      if(firstPills[0]) firstPills[0].classList.add('selected'); // action -> check
+      if(firstPills[2]) firstPills[2].classList.add('selected'); // tone -> neutral (approx index)
+    }
+  }
+
+  // action & tone selection
+  function selectAction(action, btn){
+    currentAction = action;
+    // find parent panel-row and mark selection
+    const siblings = btn.parentElement.querySelectorAll('.pill');
+    siblings.forEach(s => s.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+
+  function selectTone(tone, btn){
+    currentTone = tone;
+    const siblings = btn.parentElement.querySelectorAll('.pill');
+    siblings.forEach(s => s.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+
+  // main process
+  async function processText(){
+    const text = document.getElementById('inputText').value.trim();
+    const out = document.getElementById('outputText');
+    if(!text){ alert('Please enter text first!'); return; }
+
+    out.value = 'Processing...';
+
+    try {
+      const res = await fetch('/analyze', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          text,
+          mode: currentMode,
+          action: currentAction,
+          tone: currentTone
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({error:'Server error'}));
+        out.value = err.error || 'Error while processing';
+        return;
+      }
+
+      const data = await res.json();
+      out.value = data.corrected_text || data.summary || '';
+    } catch (e) {
+      console.error(e);
+      out.value = 'Error connecting to server.';
+    }
+  }
+
+  // initial state: ensure academicControls hidden if general
+  document.addEventListener('DOMContentLoaded', () => {
+    // hide academic controls by default
+    document.getElementById('academicControls').style.display = 'none';
+  });
+</script>
+
+</body>
+</html>
