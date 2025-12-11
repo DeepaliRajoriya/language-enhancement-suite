@@ -10,8 +10,13 @@ This is a comprehensive web-based application designed to enhance written conten
 The application provides essential tools to refine and simplify text:
 
 **Grammar and Spell Checker:** Uses rule-based checking for correctness.
+<br>
 **Tone Converter:** Converts text style (e.g., Formal/Academic).
+<br>
 **Text Summarizer:** Provides basic extractive text summarization.
+<br>
 **Passive Voice Detection:** Identifies passive constructions using dependency parsing.
+<br>
 **Text Simplification:** Includes core functionality for text simplification.
+<br>
 
