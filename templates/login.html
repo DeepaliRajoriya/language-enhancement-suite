@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Login - Language Enhancement Tool</title>
+  <style>
+    :root{--primary:#5b4bc4;--bg:#f8f9fa}
+    body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);font-family:"Segoe UI",sans-serif}
+    .card{background:#fff;padding:28px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.06);width:360px}
+    h2{color:var(--primary);margin:0 0 14px;text-align:center}
+    input{width:100%;padding:10px;margin:8px 0;border-radius:8px;border:1px solid #ddd}
+    .btn{width:100%;padding:10px;margin-top:12px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700}
+    .link{text-align:center;margin-top:10px}
+    .error{color:red;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Login</h2>
+    <div id="msg"></div>
+    <input id="email" type="email" placeholder="Email"/>
+    <input id="password" type="password" placeholder="Password"/>
+    <button class="btn" onclick="login()">Login</button>
+    <div class="link">Don't have an account? <a href="/signup-page" style="color:var(--primary);font-weight:700">Sign up</a></div>
+  </div>
+
+<script>
+async function login(){
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const msg = document.getElementById('msg');
+  msg.innerHTML = '';
+
+  if(!email || !password){ msg.innerHTML = '<div class="error">Both fields required</div>'; return; }
+
+  try {
+    const res = await fetch('/login', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email,password})
+    });
+    const data = await res.json();
+    if(res.ok){
+      msg.innerHTML = '<div style="color:green;text-align:center">Login successful — redirecting...</div>';
+      setTimeout(()=>{ window.location.href = '/'; }, 900);
+    } else {
+      msg.innerHTML = `<div class="error">${data.error || 'Login failed'}</div>`;
+    }
+  } catch(e){
+    msg.innerHTML = '<div class="error">Network error</div>';
+  }
+}
+</script>
+</body>
+</html>
